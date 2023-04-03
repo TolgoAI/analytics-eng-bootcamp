@@ -36,5 +36,5 @@ models:
     # Config indicated by + and applies to all files under models/example/
     staging:
       +enabled: true # enables us to switch the models on and off
-      +materialized: table
+      +materialized: view
       +schema: stg_northwind # what schema it should go and create within Bigquery table
