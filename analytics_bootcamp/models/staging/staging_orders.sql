@@ -2,4 +2,7 @@ with cte_orders as (
 
     select * from {{source('northwind', 'orders')}}
 )
-select * from cte_orders
+select
+    *,
+    current_timestamp() as ingestion_timestamp
+from cte_orders

@@ -1,4 +1,7 @@
 with cte_purchase_orders as (
     select * from {{source('northwind', 'purchase_orders')}}
 )
-select * from cte_purchase_orders
+select
+    *,
+    current_timestamp() as ingestion_timestamp
+from cte_purchase_orders

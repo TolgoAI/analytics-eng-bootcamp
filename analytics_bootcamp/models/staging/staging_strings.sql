@@ -1,4 +1,7 @@
 with cte_strings as(
     select * from {{source('northwind', 'strings')}}
 )
-select * from cte_strings
+select
+    *,
+    current_timestamp() as ingestion_timestamp
+from cte_strings
