@@ -38,3 +38,7 @@ models:
       +enabled: true # enables us to switch the models on and off
       +materialized: view
       +schema: stg_northwind # what schema it should go and create within Bigquery table
+    datawarehouse:
+      +enabled: true # enables us to switch the models on and off
+      +materialized: table
+      +schema: dwh_northwind
