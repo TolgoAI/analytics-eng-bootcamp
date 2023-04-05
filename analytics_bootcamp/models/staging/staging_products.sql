@@ -1,3 +1,8 @@
+{{ config(
+    materialized="table",
+    schema="dwh_northwind"
+) }}
+
 with cte_suppliers as (
     select
         cast (supplier_ids as integer) as supplier_id,
