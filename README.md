@@ -1,4 +1,4 @@
-# analytics-eng-bootcamp
+# Analytics engineering bootcamp
 Welcome to the practical part of the analytics engineering bootcamp.
 In this hands-on tutorial, we will build dimensional datawarehouse for northwind leveraging hybrid methodology. We will use real-world scenario and data to build dimensional models and practice various use cases, demonstrating the importance of data modelling for efficient data processing, analysis, and reporting. This tutorial will equip you with the skills and knowledge to model data effectively and drive business insights from your data.
 
@@ -121,3 +121,152 @@ Now that we have built our high-level bus matrix and conceptual model, it's time
 ![Architecture](misc/Architecture.png)
 
 Now that we understand what our architecture looks like, we can start our dimensional modeling process.
+
+Previously, we completed building both high-level matrix entities and a conceptual model. The next step is to use all of this content to continue building our process of dimensional modeling. Let's start our dimensional modeling process. We will follow four steps to create our dimensional model once this process is completed. We should have our bus matrix with granularity defined based on this. We will then create a logical model and a source-to-target document.
+
+The first step is to select the business process. The second step is to declare the grain. The third step is to identify the dimensions and then identify the facts.
+
+Here we have our bus matrix again(analytics-engineering-bootcamp-workbook/~$Analytics Engineering Bootcamp - Excel.xlsx). However, you may have noticed that there are a couple of extra columns compared to what we had before. We also have another column called "Priority." These priorities are defined by our business based on which reports would bring the highest value to the business first. If you remember from our previous exercise when we built our final Bus Matrix High-Level entities, we mentioned that we would be taking this back to the business to discuss which reports to build first. The outcome of that process is what we are seeing here. We discussed with the business and defined the priorities we can see. The sales overview has high priority, customer reporting has high priority, sales agent has medium priority, and product inventory has the lowest priority of all.
+
+As the next step, we will complete this bus matrix by identifying granularity, facts, and the dim details. In order to do that, we will need to use our analytics engineering workbook and go to the Bus Matrix tab.
+
+We are now back in our workbook and have selected the detailed bus matrix template. This template has the same columns as before, but they are empty so that you can copy it and create your own version.
+
+I have already completed this step and created a new tab called Bus Matrix Detailed. Here, you'll see all the headers, the correct column names, and the high-level entities that we built during our conceptual model. I have also listed their priorities.
+
+As the next step, I want to choose the business process we have deemed as the highest priority. Let's select that.
+
+Now, we need to define our effect table and the granularity of those fact tables. We know that Sales Overview affected sales previously, so let's name that as our fact table.
+
+There are three different types of fact tables: transaction, periodic, and accumulative. Fact Times have been explained in detail in Section 7. Our base or core fact table should be transaction granularity so that we can store a more granular level of detail.
+
+Granularity is slightly tricky as we need to do a bit of discovery and data profiling. We know that we're looking for purchase of our products and transaction-related data. We have orders and order details. If we look at our order details table, we can see that it contains information about purchases of products and contains unit price, quantity, and discounts. These are all relevant information we need to define our granularity.
+
+So let's go back to our workbook and put our granularity as one row per order details line item.
+
+As a next step, we need to double-check if the dimensions that we selected during our conceptual model are all correct. It is usually a good idea to double-check dimension tables against our entity relationship diagram. Going back to our ER diagram, we can see that our customers and employees all have a one-to-many relationship to orders. Orders have a one-to-many relationship to our order details. So logically, this makes sense because if we create our fact table using all the details and orders, we should be able to connect the rest of our dimension tables, which are customers, employees, products, and suppliers.
+
+Next, let's verify this by writing some queries to double-check if our assumption is correct. We'll need to go back to our bakery and write some queries. Let's open a new tab.
+
+What we want to do is to create a join between order details and product first to identify if all the orders can be associated with the products table. We'll write our query in BigQuery like this:
+```sql
+SELECT p.product_name,
+      count(od.product_id),
+      sum(od.quantity)
+FROM `rp-analytic-engineer-bootcamp.dl_northwind.order_details`od
+JOIN `rp-analytic-engineer-bootcamp.dl_northwind.products`p
+ON p.id = od.product.id
+group by 1;
+```
+We'll just do some calculations and counting up the product ID. The result here indicates the total count for each product and the costs associated with each product. Each row here represents the sale of a product.
+
+Let's try one more query to validate that all the dimensions we have selected are correct. This time, we want to find out if we can join between our order_details table and our customer table. We'll write a query which looks like this, very similar to what we've done previously:
+
+```sql
+SELECT c.first_name,
+      sum(od.quantity),
+FROM `rp-analytic-engineer-bootcamp.dl_northwind.order_details`od
+JOIN `rp-analytic-engineer-bootcamp.dl_northwind.customer`c
+ON c.id = od.customer_id
+group by 1;
+```
+Here we can see that the customer_id is not found inside the order details. If we go back to our ERD(Cloud-SQL-OLTP-ERD/northwind-oltp-erd.png) and look at the order_details, we will notice that it only contains product_id. We need to bring in our orders_table because this is where our customer ID is. Once we bring in this order information within order details, we can create one fact table and then access customer information, employee information, shipper information, and everything else from here.
+
+Currently, we have `order_details` that need to be joined with the `orders` table using a left join on orders. The query for the join looks something like this:
+```sql
+SELECT c.first_name,
+      sum(od.quantity)
+FROM `rp-analytic-engineer-bootcamp.dl_northwind.order_details`od
+LEFT JOIN `rp-analytic-engineer-bootcamp.dl_northwind.orders`o
+ON o.id = od.order_id
+LEFT JOIN `rp-analytic-engineer-bootcamp.dl_northwind.customer`c
+ON c.id = o.customer_id
+group by 1
+```
+The query shows that we only have a total of 15 customers, whereas we know we have 30 customers in our customer table. This raises the question of why we have only 15 records in the orders table. After investigating, we discover that out of 30 customers, only 15 of them have placed an order recently. This is fine, as we have enough understanding of the relationship between these tables, and we can confirm that the dimension tables we have selected are suitable.
+
+The next step is to identify dimensions and facts for our dimensional modeling. This means we need to provide more information about our facts and dimensions. The bus matrix gives us a high-level understanding of what we need to do and how we need to build the table. However, when we actually build the table, we need to understand what columns we need to use for each fact table and dimension table. Instead of defining these details in the bus matrix, we prefer to include them in the source-to-target mapping document.
+
+The source-to-target mapping document will become our main reference document between developers, and it will be critical for us to use during the physical implementation phase. As part of the source-to-target mapping document, we will also produce a Dimensional Model Attributes and Measures Document, which will provide a more detailed breakdown of fact and dimension tables. This document will be essential for anyone else looking at this document to know where to go and reference for more detailed information about our fact and dimension tables.
+
+### Source to target mapping
+Next, let's create a source-to-target mapping document so we can understand how to do so.
+
+To target mapping:
+So we need to create source-to-target documents:
+
+- OLTP(Cloud SQL) --> to data lake
+- Data lake --> staging layer
+- Staging layer --> warehouse
+- Warehouse --> OBT
+
+
+Let's start by creating a source-to-target document for our Cloud SQL to data lake. If you have been following this hands-on tutorial so far, you would have the data lake table created by now. If not, please refer to the "Set up BigQuery" section to see how to populate this dataset and tables.
+
+Looking at the tabs here in the workbook, we have:
+
+- Source-to-target mapping data lake
+- Sales to target mapping staging layer
+- Dimensional model attributes and measures, which is going to be part of the source-to-target mapping warehouse
+- Source-to-target mapping for analytic layer or one big table.
+
+The structure of this document is exactly the same as how we've been going through the bus matrix. We have the template as the first document, and then we have the second document here, we have the second step, which is a copy of this where I will be taking you through the details,dnd then we have the completed version for a reference documentation.
+
+So first of all, what is source-to-target mapping? It basically allows us to understand where the data is coming from and what it will become once it lands at its destination. Because during each transfer of data, data transformation can happen, and we need to keep track of all of these transformations. This source-to-target mapping document is very important for us to use it as a reference point during our build phase.
+
+Looking at this template, we have target on the left side, source on the right side. This is because when we actually build tables, it is helpful to see the targets first. This is why they are on the left side.
+
+Easiest way is to start this by looking at our BigQuery table. This data lake dataset, as we mentioned previously, is a replication of what would be in OLTP database or cloud SQL database.
+
+So what do we do next? How do we populate this? Let's go back to our BigQuery.
+
+So first of all, let's start by looking at our customer table. Since this is a representation of our ERD, which is exactly the same column names, but inside our BigQuery table, this makes our process a bit easier. And we are doing this because if we look at the schema, we can see all the columns that we need.
+
+Once we have copied and pasted it, let's do a little bit of cleanup. We'll get rid of all the bodies, which we don't need. Again, we know that all of these columns here are an exact replication of OLTP. So what we need to do is to just copy the source columns and paste to a target part.
+
+Next, we will move on to the next section of the document, which is the "sales to target mapping for staging layer". This section will cover the mapping of the data from the data lake to the staging layer.
+
+Similar to the previous section, we will start with the template and then fill in the necessary details. The target table for this section is the staging layer, and we will need to reference the architecture diagram again to understand how the data flows from the data lake to the staging layer.
+
+We will populate the target column name, target table name, data type, target schema, target system, and any additional notes. We will then move on to the source section and populate the source column name, source table name, data type, and any additional notes.
+
+We will continue this process for each section of the document, including the dimensional model attributes and measures, and the source to target mapping for the analytical layer or one big table.
+
+Once we have completed all of the sections, we will have a comprehensive source to target mapping document that will serve as a reference point during the build phase. This document will help us understand where the data is coming from and what it will become once it lands at its destination.
+
+### Logical Model (expand it and attach a logical diagram)
+Before proceeding with building a physical model, we should build a logical model using a bus matrix, starting with the fact tables and their associated dimensions. The process involves creating an entity relationship between fact and dimension tables.
+
+### Physical design and development
+
+We are going to be creating our physical design model and the development of our dimensional data warehouse.
+
+So let's have a look at how we will do that first.
+
+First, we all need to create a physical model. Then we'll use our source to target document that we created previously as our reference point to set up our data warehouse. During this phase, we will be using DBT as our main data transformation tool. We will be creating our data warehouse layer, our data warehouse table, and we will populate those tables using SQL.
+
+So first, let's create our physical model.
+
+To do that, we all need to go back to our draw.io Now we are at draw.io, let's create a new tab, and we'll call this tab physical. And let's change our style so it's the same as our previous ones. And let's go back to a logical model very quickly.
+
+In this logical model design, the first thing we would notice is how the tables are replicated across our fact tables. We can see the demo date here is replicated in our effect inventory for sale. And then again, in our fact purchase order. Same thing goes for dim product, dim customer, dim employee. All of these dimensions are shared across multiple facts. So what we can do in this case is to create a conformed dimension. This is what we would be doing in our physical design. We would be creating a conformed dimension. Hence, creating a dimensional data warehouse will also improve our existing fact tables and dim table details. So we'll be adding data types and primary keys and foreign keys information to our design model. So let's do that.
+
+Let's search here, entity from the options we have here. This time we will select the table designed to. Let's make a few changes here. We will add lane color, so we have a white background, which is much easier to read. And we'll name this table fact sales.
+
+Next, what we need to do here is to add an additional column. In order for us to do that, let's go to arrange and down here in the table options section, we have an option to insert columns or to add rows. We want to insert columns to the right. So let's do that. Now our table has three columns. This is perfect. And we'll change our table design a little bit. So let's come over here, less like this row and let's remove this row. So that line that is now gone will make our design much more easier and readable. And as previously how we were designing our logical model, we'll have to fill in our table with all the information from our ecological model.
+
+So if we go back to our logical model, we'll need to get all the information here that we did back to our physical design. So we'll do that for ID product and ID customer. We will also remove the underline here. And next, we need to add in the data types here as well. This is not complete, but let me just show you very quickly what we will be doing to complete this table.
+
+So in order for us to do that, we'll need to go back to our workbook and then select ourselves to target mapping warehouse complete because this is where our final dim and fact table details are. So fact sales, we have all of this information here: integer, all the individuals here are integer quantities flowed. So what we all need to do is to transfer all of this information back to our model here, so we will do that now.
+
+And here, I have completed our table with all the information that is necessary for our fact sales table. So you can see we have all the foreign keys and primary keys identified.
+
+Now that we have created our physical design model and developed our dimensional data warehouse, we can move on to the next step, which is populating the tables using dbt (sql +jinja).
+
+We will use the source to target document that we created previously as a reference point to set up our data warehouse. During this phase, we will use dbt as our main data transformation tool.
+
+First, we will create staging layer,then our data warehouse table and OBT layers.
+
+To create the data warehouse layer, we will use the conformed dimensions that we created earlier. This will improve our existing fact tables and dim tables details.
+
+In order to populate our tables using SQL (in dbt), we will need to write SQL scripts for each of the tables that we created. These scripts will insert the data into the tables.Once we have written the SQL scripts, we will execute them to populate the tables.
