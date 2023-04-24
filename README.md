@@ -33,7 +33,7 @@ This should display the version number of dbt that was installed.
 
 4. To configure BigQuery credentials for dbt, you can create a file called `profiles.yml` in your `~/.dbt/` directory. Here's an example `profiles.yml` file with BigQuery credentials:
 
-```
+```yml
  analytics_bootcamp:
   outputs:
     dev:
