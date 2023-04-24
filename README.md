@@ -104,3 +104,20 @@ The next process is Sales Agent Tracking, where we need to identify the dimensio
 After completing the bus matrix for these two processes, we get an idea of what to do next. In reality, we would create a workbook with all the details and use it as a reference throughout the project. An analytics engineering bootcamp workbook is available for this purpose, containing everything covered in this hands-on tutorial. We have various tabs in the workbook, including the bus matrix high-level entities tab. The workbook is organized in three different tabs, including a template, a tab for hands-on work, and a completed tab.
 
 Overall, the bus matrix helps us identify the high-level entities required to build our business processes, and it is an essential step in building a dimensional data warehouse.
+
+### Build a conceptual model
+Now that we have our bus matrix, we can proceed to build our conceptual model, which will help us communicate our model back to the business and show them what it will look like.
+
+When we examine our bus matrix, we can identify three distinct business processes: sales, inventory, and customer reporting. However, it's actually more related to understanding purchase orders. Let's confirm a few things in our BigQuery data warehouse table.
+
+Regarding sales processes and transactions, they are contained in our order_details and order tables. The order_details table contains all the information on the quantity, unit_prices, and associated discounts. If we look at our order table, we'll find all the information that we can map back to our customers and employees. Then we have inventory, and if we examine our inventory transaction table, we'll find all the transaction information associated with that inventory. Lastly, we have purchase_orders, which we previously looked at. The same goes for purchase_order_details, and these are our fact tables.
+
+This is a high-level conceptual assumption that we are making based on our understanding of the table, the schema, and the ERD model that we previously examined.
+
+![Conceptual Model](misc/conceptual_model.png)
+### Understand the architecture design
+Now that we have built our high-level bus matrix and conceptual model, it's time to look at the architectural design. The data team has already migrated our on-prem Microsoft SQL solution to Google Cloud SQL, and this data is loaded into the big data lake layer in the form of S3 data. Our data lake is essentially a replication of our data sources so that we don't query our data sources directly. We have a layer in between where we can materialize our old data, which reduces the load on our transactional data-based systems. The data is then loaded to a staging layer where we will do some data transformations and cleansing. Once our data is available in the dimensional data warehouse layer, we create a Dem and fact model. We create one big table to speed up reporting and showcase how we would use different modeling styles in combination to build such solutions.
+
+![Architecture](misc/Architecture.png)
+
+Now that we understand what our architecture looks like, we can start our dimensional modeling process.
