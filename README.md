@@ -269,4 +269,4 @@ First, we will create staging layer,then our data warehouse table and OBT layers
 
 To create the data warehouse layer, we will use the conformed dimensions that we created earlier. This will improve our existing fact tables and dim tables details.
 
-In order to populate our tables using SQL (in dbt), we will need to write SQL scripts for each of the tables that we created. These scripts will insert the data into the tables.Once we have written the SQL scripts, we will execute them to populate the tables.
+In order to populate our tables using SQL (in dbt) based on physical model, refer to models that contain sql statements (in analytics_bootcamp repository) for tables in each layer.
