@@ -138,7 +138,7 @@ As the next step, I want to choose the business process we have deemed as the hi
 
 Now, we need to define our effect table and the granularity of those fact tables. We know that Sales Overview affected sales previously, so let's name that as our fact table.
 
-There are three different types of fact tables: transaction, periodic, and accumulative. Fact Times have been explained in detail in Section 7. Our base or core fact table should be transaction granularity so that we can store a more granular level of detail.
+There are three different types of fact tables: transaction, periodic, and accumulative.Our base or core fact table should be transaction granularity so that we can store a more granular level of detail.
 
 Granularity is slightly tricky as we need to do a bit of discovery and data profiling. We know that we're looking for purchase of our products and transaction-related data. We have orders and order details. If we look at our order details table, we can see that it contains information about purchases of products and contains unit price, quantity, and discounts. These are all relevant information we need to define our granularity.
 
